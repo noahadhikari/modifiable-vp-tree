@@ -1,4 +1,3 @@
-import edu.princeton.cs.algs4.StdRandom;
 import metrics.DistanceMetric;
 import metrics.EuclideanMetric;
 
@@ -56,8 +55,32 @@ public class PSPTree<T> {
             return Arrays.equals(position, pos);
         }
 
+        /** Returns a PDistComparator from this node P. */
         public Comparator<PSPNode> distComparator() {
-            return new pDistComparator(this);
+            return new PDistComparator(this);
+        }
+
+        @Override
+        public String toString() {
+            String s = "(" + value + ", " + Arrays.toString(position) + ", " +
+                             String.format("%.1f", radius) + ")";
+            if (this.isLeaf()) {
+                return s;
+            } else if (inner == null) {
+                return s + "\n" + outer.toString();
+            } else if (outer == null) {
+                return s + "\n" + inner.toString();
+            } else {
+                return s +
+                    "\n" +
+                    inner.toString() +
+                    "\n" +
+                    outer.toString();
+            }
+        }
+
+        public boolean isLeaf() {
+            return (outer == null && inner == null);
         }
     }
 
@@ -74,9 +97,9 @@ public class PSPTree<T> {
     }
 
     /** Compares how far nodes are to a node P specified in the constructor. */
-    private class pDistComparator implements Comparator<PSPNode> {
+    private class PDistComparator implements Comparator<PSPNode> {
         PSPNode p;
-        public pDistComparator(PSPNode p) {
+        public PDistComparator(PSPNode p) {
             this.p = p;
         }
 
@@ -93,6 +116,8 @@ public class PSPTree<T> {
         public int compare(PSPNode o1, PSPNode o2) {
             return Double.compare(p.distTo(o1), p.distTo(o2));
         }
+
+
     }
 
     /** Comparator for testing if nodes are located within one another's radius or not. */
@@ -122,9 +147,9 @@ public class PSPTree<T> {
      * @return Pair(nearestNode, mostRecentNodeVisited)
      */
     private Pair<PSPNode, PSPNode> nearest(PSPNode p) {
-        double bestDistance = Integer.MAX_VALUE;
+        double bestDistance = Double.MAX_VALUE;
         PSPNode bestNode = null;
-        PSPNode lastVisited = sentinel.outer; // node to update to compare the point P with
+        PSPNode lastVisited = sentinel; // node to update to compare the point P with
         while (lastVisited != null) {
             double d = lastVisited.distTo(p);
             if (d < bestDistance) {
@@ -156,7 +181,7 @@ public class PSPTree<T> {
     private PSPNode getNode(double[] pos) {
         PSPNode dummy = dummyNode(pos);
         PSPNode n = nearest(dummy).first;
-        if (n.isAt(pos)) {
+        if (n != null && n.isAt(pos)) {
             return n;
         }
         return null;
@@ -167,11 +192,7 @@ public class PSPTree<T> {
         PSPNode parent = nearest(child).last;
         child.radius = parent.distTo(child);
         int cmp = nodeComparator.compare(parent, child);
-        if (cmp > 0) {
-            parent.outer = child;
-        } else {
-            parent.inner = child;
-        }
+        cmpHelper(cmp, parent, child);
     }
 
     /**
@@ -183,12 +204,12 @@ public class PSPTree<T> {
     public void insert(double[] pos, T value) {
         if (this.contains(pos)) {
             getNode(pos).value = value;
+            return;
         }
         PSPNode n = new PSPNode(pos, 0, null, null, value);
         insert(n);
         size += 1;
     }
-
 
     /**
      * Removes and returns the value at position POS. Returns null if POS
@@ -218,8 +239,8 @@ public class PSPTree<T> {
         // >0 n = p.outer
         // <=0 n = p.inner
 
-        if (n.inner == null && n.outer == null) { // n has no children
-            deleteHelper(cmp, p, null);
+        if (n.isLeaf()) { // n has no children
+            cmpHelper(cmp, p, null);
         } else if (n.inner == null || n.outer == null) { // n has one child
             PSPNode child;
             if (n.inner == null) {
@@ -227,9 +248,9 @@ public class PSPTree<T> {
             } else {
                 child = n.inner;
             }
-            deleteHelper(cmp, p, child);
+            cmpHelper(cmp, p, child);
         } else { // n has two children
-            deleteHelper(cmp, p, null);
+            cmpHelper(cmp, p, null);
 
             n.inner.radius = p.distTo(n.inner);
             insert(n.inner);
@@ -242,7 +263,7 @@ public class PSPTree<T> {
         return n.value;
     }
 
-    private void deleteHelper(int cmp, PSPNode n, PSPNode finalNodeVal) {
+    private void cmpHelper(int cmp, PSPNode n, PSPNode finalNodeVal) {
         if (cmp > 0) {
             n.outer = finalNodeVal;
         } else {
@@ -299,19 +320,26 @@ public class PSPTree<T> {
         return arr;
     }
 
+    @Override
+    public String toString() {
+        return "{" + sentinel.outer.toString() + "}";
+    }
+
+    private PSPNode createSentinel() {
+        double[] startPoint = new double[dimension];
+        Random r = new Random();
+        Iterator<Double> doubleIterator = r.doubles().iterator();
+        for (int i = 0; i < dimension; i++) {
+            startPoint[i] = doubleIterator.next();
+        }
+        return new PSPNode(startPoint,0, null, null, null);
+    }
+
     public PSPTree(DistanceMetric d, int dimension) {
         this.distanceMetric = d;
         this.dimension = dimension;
         this.nodeComparator = new PSPNodeComparator();
-        double[] startPoint = new double[dimension];
-        for (int i = 0; i < dimension; i++) {
-            startPoint[i] = StdRandom.uniform(-1.0, 1.0);
-        }
-        this.sentinel = new PSPNode(startPoint,0, null, null, null);
-    }
-
-    public PSPTree() {
-        this(new EuclideanMetric(), 2);
+        this.sentinel = createSentinel();
     }
 
 }
