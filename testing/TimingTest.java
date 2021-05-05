@@ -19,25 +19,25 @@ public class TimingTest {
     void dimensionalityTest() throws InterruptedException {
         // theoretically avg O(f(d) log d), where distanceMetric runs in O(f(d)) time.
         // for dimension d
-        int N = 100; // number of nodes to insert into each dimension
-        int K = 100000; // max dimension of nodes
+        int N = 1000; // number of nodes to insert into each dimension
+        int K = 10000; // max dimension of nodes
         int c = (int) Math.log10(K);
         double[] dimensions = new double[c];
         double[] times = new double[c];
-        Iterator<Integer> randInts = new Random().ints().iterator();
+        Random rand = new Random();
 
 
 
-        for (int k = 1; k <= K; k *= 10) { //loop through dimensions 1, ... , K
+        for (int k = 10; k <= K; k *= 10) { //loop through dimensions 1, 10, ... , K
             PSPTree<Integer> p = new PSPTree<>(new SquaredEuclideanMetric(), k);
                 long time = 0;
                 for (int i = 0; i < N; i++) { //for each n, add one node n times
-                    double[] pos = new double[k];
+                    Double[] pos = new Double[k];
                     for (int j = 0; j < k; j++) { // randomize the position array
-                        pos[j] = randInts.next();
+                        pos[j] = rand.nextDouble();
                     }
                     Stopwatch timer = Stopwatch.createStarted();
-                    p.insert(pos, i);
+                    p.insert(new Position(pos), i);
                     timer.stop();
                     time += timer.elapsed(TimeUnit.MILLISECONDS);
                 }
@@ -67,7 +67,7 @@ public class TimingTest {
         int c = N / step;
         double[] nodes = new double[c];
         double[] times = new double[c];
-        Iterator<Integer> randInts = new Random().ints().iterator();
+        Random rand = new Random();
 
 
 
@@ -75,12 +75,12 @@ public class TimingTest {
             PSPTree<Integer> p = new PSPTree<>(new SquaredEuclideanMetric(), K);
             long time = 0;
             for (int i = 0; i < N; i++) { //for each n, add one node n times
-                double[] pos = new double[K];
+                Double[] pos = new Double[K];
                 for (int j = 0; j < K; j++) { // randomize the position array
-                    pos[j] = randInts.next();
+                    pos[j] = rand.nextDouble();
                 }
                 Stopwatch timer = Stopwatch.createStarted();
-                p.insert(pos, i);
+                p.insert(new Position(pos), i);
                 timer.stop();
                 time += timer.elapsed(TimeUnit.MILLISECONDS);
             }

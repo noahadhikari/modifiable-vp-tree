@@ -1,5 +1,5 @@
 package metrics;
 
 public interface DistanceMetric {
-    double distBetween(double[] pos1, double[] pos2);
+    double distBetween(Double[] pos1, Double[] pos2);
 }

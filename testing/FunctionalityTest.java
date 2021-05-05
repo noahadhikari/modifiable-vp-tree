@@ -4,16 +4,16 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class PSPTreeFunctionalityTest {
+class FunctionalityTest {
 
     @Test
     void basicInsertTest() {
         PSPTree<String> p = new PSPTree<>(new SquaredEuclideanMetric(), 2);
-        double[] a = new double[]{0, 0};
-        double[] b = new double[]{4, 2};
-        double[] c = new double[]{5, 1};
-        double[] d = new double[]{-4, -6};
-        double[] e = new double[]{0, -3};
+        Position a = new Position(0., 0.);
+        Position b = new Position(4., 2.);
+        Position c = new Position(5., 1.);
+        Position d = new Position(-4., -6.);
+        Position e = new Position(0., -3.);
         p.insert(a, "A");
         p.insert(b, "B");
         p.insert(c, "C");
@@ -27,12 +27,12 @@ class PSPTreeFunctionalityTest {
     @Test
     void basicDeleteTest() {
         PSPTree<String> p = new PSPTree<>(new SquaredEuclideanMetric(), 2);
-        double[] a = new double[]{0, 0};
-        double[] b = new double[]{4, 2};
-        double[] c = new double[]{5, 1};
-        double[] d = new double[]{-4, -6};
-        double[] e = new double[]{0, -3};
-        double[] f = new double[]{0, -345};
+        Position a = new Position(0., 0.);
+        Position b = new Position(4., 2.);
+        Position c = new Position(5., 1.);
+        Position d = new Position(-4., -6.);
+        Position e = new Position(0., -3.);
+        Position f = new Position(0., -345.);
         p.insert(a, "A");
         p.insert(b, "B");
         p.insert(c, "C");
@@ -47,12 +47,12 @@ class PSPTreeFunctionalityTest {
     @Test
     void basicContainsTest() {
         PSPTree<String> p = new PSPTree<>(new SquaredEuclideanMetric(), 2);
-        double[] a = new double[]{0, 0};
-        double[] b = new double[]{4, 2};
-        double[] c = new double[]{5, 1};
-        double[] d = new double[]{-4, -6};
-        double[] e = new double[]{0, -3};
-        double[] f = new double[]{0, -345};
+        Position a = new Position(0., 0.);
+        Position b = new Position(4., 2.);
+        Position c = new Position(5., 1.);
+        Position d = new Position(-4., -6.);
+        Position e = new Position(0., -3.);
+        Position f = new Position(0., -345.);
         p.insert(a, "A");
         p.insert(b, "B");
         p.insert(c, "C");
@@ -67,16 +67,17 @@ class PSPTreeFunctionalityTest {
     @Test
     void basicMultiDimensionalTest() {
         PSPTree<String> p = new PSPTree<>(new SquaredEuclideanMetric(), 4);
-        double[] a = new double[]{0, 0, 5, 3};
-        double[] b = new double[]{4, 2, -8, 6};
-        double[] c = new double[]{5, 1, -4, 0};
-        double[] d = new double[]{-4, -6, 0, 0};
+        Position a = new Position(0., 0., 5., 3.);
+        Position b = new Position(4., 2., -8., 6.);
+        Position c = new Position(5., 1., -4., 0.);
+        Position d = new Position(-4., -6., 0., 0.);
         p.insert(a, "A");
         p.insert(b, "B");
         p.insert(c, "C");
         p.insert(d, "D");
         System.out.println(p);
     }
+
 
     @Test
     void rangeSearch() {
