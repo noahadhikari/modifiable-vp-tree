@@ -3,8 +3,8 @@ import metrics.DistanceMetric;
 import java.util.Arrays;
 
 public class Position {
-    Double[] pos;
-    Position(Double... p) {
+    double[] pos;
+    Position(double... p) {
         pos = p;
     }
 

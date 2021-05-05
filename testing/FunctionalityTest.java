@@ -6,58 +6,43 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class FunctionalityTest {
 
-    @Test
-    void basicInsertTest() {
+    Position a = new Position(0., 0.);
+    Position b = new Position(4., 2.);
+    Position c = new Position(5., 1.);
+    Position d = new Position(-4., -6.);
+    Position e = new Position(0., -3.);
+    Position f = new Position(7, 10);
+
+    public PSPTree<String> createBasicTree() {
         PSPTree<String> p = new PSPTree<>(new SquaredEuclideanMetric(), 2);
-        Position a = new Position(0., 0.);
-        Position b = new Position(4., 2.);
-        Position c = new Position(5., 1.);
-        Position d = new Position(-4., -6.);
-        Position e = new Position(0., -3.);
         p.insert(a, "A");
         p.insert(b, "B");
         p.insert(c, "C");
         p.insert(d, "D");
         p.insert(e, "E");
-        p.insert(e, "F");
-        System.out.println(p);
-        assertEquals(5, p.size());
+        p.insert(f, "F");
+        return p;
+    }
+
+    @Test
+    void basicInsertTest() {
+        PSPTree<String> p = createBasicTree();
+        System.out.println("Insert:" + p);
+        assertEquals(6, p.size());
     }
 
     @Test
     void basicDeleteTest() {
-        PSPTree<String> p = new PSPTree<>(new SquaredEuclideanMetric(), 2);
-        Position a = new Position(0., 0.);
-        Position b = new Position(4., 2.);
-        Position c = new Position(5., 1.);
-        Position d = new Position(-4., -6.);
-        Position e = new Position(0., -3.);
-        Position f = new Position(0., -345.);
-        p.insert(a, "A");
-        p.insert(b, "B");
-        p.insert(c, "C");
-        p.insert(d, "D");
-        p.insert(e, "E");
+        PSPTree<String> p = createBasicTree();
         p.delete(b);
         p.delete(f);
-        System.out.println(p);
+        System.out.println("Delete:" + p);
         assertEquals(4, p.size());
     }
 
     @Test
     void basicContainsTest() {
-        PSPTree<String> p = new PSPTree<>(new SquaredEuclideanMetric(), 2);
-        Position a = new Position(0., 0.);
-        Position b = new Position(4., 2.);
-        Position c = new Position(5., 1.);
-        Position d = new Position(-4., -6.);
-        Position e = new Position(0., -3.);
-        Position f = new Position(0., -345.);
-        p.insert(a, "A");
-        p.insert(b, "B");
-        p.insert(c, "C");
-        p.insert(d, "D");
-        p.insert(e, "E");
+        PSPTree<String> p = createBasicTree();
         p.delete(b);
         assertTrue(p.contains(a));
         assertFalse(p.contains(b));
@@ -75,7 +60,8 @@ class FunctionalityTest {
         p.insert(b, "B");
         p.insert(c, "C");
         p.insert(d, "D");
-        System.out.println(p);
+        p.delete(c);
+        System.out.println("Multi:" + p);
     }
 
 
@@ -84,6 +70,15 @@ class FunctionalityTest {
     }
 
     @Test
-    void kNearestNeighbor() {
+    void basicKNearestNeighborTest() {
+        PSPTree<Integer> t = new PSPTree<>(new EuclideanMetric(), 1);
+        int m = 300;
+        for (int i = -m; i < m; i++) {
+            t.insert(new Position(i), i);
+        }
+        for (Pair<Position, Integer> p : t.kNearestNeighbor(new Position(10), 400)) {
+            System.out.println(p);
+        }
+
     }
 }

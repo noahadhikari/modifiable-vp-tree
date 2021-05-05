@@ -32,7 +32,7 @@ public class TimingTest {
             PSPTree<Integer> p = new PSPTree<>(new SquaredEuclideanMetric(), k);
                 long time = 0;
                 for (int i = 0; i < N; i++) { //for each n, add one node n times
-                    Double[] pos = new Double[k];
+                    double[] pos = new double[k];
                     for (int j = 0; j < k; j++) { // randomize the position array
                         pos[j] = rand.nextDouble();
                     }
@@ -75,7 +75,7 @@ public class TimingTest {
             PSPTree<Integer> p = new PSPTree<>(new SquaredEuclideanMetric(), K);
             long time = 0;
             for (int i = 0; i < N; i++) { //for each n, add one node n times
-                Double[] pos = new Double[K];
+                double[] pos = new double[K];
                 for (int j = 0; j < K; j++) { // randomize the position array
                     pos[j] = rand.nextDouble();
                 }
