@@ -362,11 +362,10 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
         return candidate;
     }
 
-    /** Returns the direct nearest neighbor in the tree to P.*/
-    private PSPNode oneNearestNeighbor(PSPNode p) {
-        PSPNode candidate = candidateNearestNeighbor(sentinel.outer, p);
+    private PSPNode oneNearestNeighbor(PSPNode start, PSPNode goal) {
+        PSPNode candidate = candidateNearestNeighbor(start, goal);
         PSPNode otherStart;
-        int cmp = nodeComparator.compare(candidate, p);
+        int cmp = nodeComparator.compare(candidate, goal);
         if (cmp > 0) {
             otherStart = candidate.inner;
         } else {
@@ -374,8 +373,8 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
         }
         PSPNode best = candidate;
         if (otherStart != null) {
-            PSPNode otherCandidate = candidateNearestNeighbor(otherStart, p);
-            Comparator<PSPNode> cmptr = p.distComparator();
+            PSPNode otherCandidate = oneNearestNeighbor(otherStart, goal);
+            Comparator<PSPNode> cmptr = goal.distComparator();
             // < 0 if O1.distTo(P) < O2.distTo(P)
             int distCmp = cmptr.compare(otherCandidate, candidate);
             if (distCmp <= 0) {
@@ -384,6 +383,10 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
         }
 
         return best;
+    }
+    /** Returns the direct nearest neighbor in the tree to P.*/
+    private PSPNode oneNearestNeighbor(PSPNode p) {
+        return oneNearestNeighbor(sentinel.outer, p);
     }
 
     /**
@@ -405,8 +408,8 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
             delete(best.position);
             p.radius = Double.POSITIVE_INFINITY;
         }
-        for (PSPNode removed : nodeList) { //restores tree
-            insert(removed.position, removed.value);
+        for (PSPNode deleted : nodeList) { //restores tree
+            insert(deleted.position, deleted.value);
         }
         return nodeList;
     }

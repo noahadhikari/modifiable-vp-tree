@@ -72,8 +72,8 @@ class FunctionalityTest {
     @Test
     void basicKNearestNeighborTest() {
         PSPTree<Integer> t = new PSPTree<>(new EuclideanMetric(), 1);
-        int m = 300;
-        for (int i = -m; i < m; i++) {
+        int m = 30;
+        for (int i = 0; i <= m; i++) {
             t.insert(new Position(i), i);
         }
         for (Pair<Position, Integer> p : t.kNearestNeighbor(new Position(10), 400)) {
