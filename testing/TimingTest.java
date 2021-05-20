@@ -7,7 +7,6 @@ import org.knowm.xchart.SwingWrapper;
 import org.knowm.xchart.XYChart;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -29,7 +28,7 @@ public class TimingTest {
 
 
         for (int k = 10; k <= K; k *= 10) { //loop through dimensions 1, 10, ... , K
-            PSPTree<Integer> p = new PSPTree<>(new SquaredEuclideanMetric(), k);
+            PSPTreeMap<Integer> p = new PSPTreeMap<>(new SquaredEuclideanMetric(), k);
                 long time = 0;
                 for (int i = 0; i < N; i++) { //for each n, add one node n times
                     double[] pos = new double[k];
@@ -72,7 +71,7 @@ public class TimingTest {
 
 
         for (int n = 0; n < N; n += step) { //loop through nodes 10, ... , K
-            PSPTree<Integer> p = new PSPTree<>(new SquaredEuclideanMetric(), K);
+            PSPTreeMap<Integer> p = new PSPTreeMap<>(new SquaredEuclideanMetric(), K);
             long time = 0;
             for (int i = 0; i < N; i++) { //for each n, add one node n times
                 double[] pos = new double[K];

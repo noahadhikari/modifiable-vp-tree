@@ -1,16 +1,34 @@
-public class Pair<A, B> {
-    public A first;
-    public B last;
+import java.util.Map.Entry;
 
-    public Pair(A first, B last) {
-        this.first = first;
-        this.last = last;
+public class Pair<K, V> implements Entry<K, V> {
+    public K key;
+    public V value;
+
+    public Pair(K key, V value) {
+        this.key = key;
+        this.value = value;
     }
 
     @Override
     public String toString() {
-        return "(" + first + ", " + last + ")";
+        return "(" + key + ", " + value + ")";
     }
 
 
+    @Override
+    public K getKey() {
+        return key;
+    }
+
+    @Override
+    public V getValue() {
+        return value;
+    }
+
+    @Override
+    public V setValue(V value) {
+        V temp = this.value;
+        this.value = value;
+        return temp;
+    }
 }

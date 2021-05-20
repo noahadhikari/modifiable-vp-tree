@@ -6,10 +6,10 @@ import java.util.stream.Collectors;
  * Space-partitioning tree that uses hyperspheres to separate space into
  * inner and outer regions.
  */
-public class PSPTree<T> implements Iterable<Pair<Position, T>> {
+public class PSPTreeMap<T> implements Map<Position, T> {
 
     private int size;
-    private final PSPNode sentinel; // node of radius 0 centered at a random position
+    private PSPNode sentinel; // node of radius 0 centered at a random position
                               // in a cube of side length 2 centered at the origin
     private final int dimension;
     private final DistanceMetric distanceMetric;
@@ -19,6 +19,7 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
 
         Position position;
         double radius;
+        PSPNode parent;
         PSPNode inner;
         PSPNode outer;
         T value;
@@ -27,13 +28,16 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
          * Primary helper node building block of the PSPTree.
          * @param position double array of the position of the node
          * @param radius radius of the node's "region"
+         * @param parent parent of the node
          * @param inner inner child of the node
          * @param outer outer child of the node
          * @param value value stored within this node
          */
-        PSPNode(Position position, double radius, PSPNode inner, PSPNode outer, T value) {
+        PSPNode(Position position, double radius, PSPNode parent, PSPNode inner, PSPNode outer,
+                T value) {
             this.position = position;
             this.radius = radius;
+            this.parent = parent;
             this.inner = inner;
             this.outer = outer;
             this.value = value;
@@ -59,7 +63,6 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
         public Comparator<PSPNode> distComparator() {
             return new PDistComparator(this);
         }
-
 
         @Override
         public String toString() {
@@ -98,27 +101,17 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
             return l.iterator();
         }
 
+        /** Returns a Pair representation of this node. */
         public Pair<Position, T> toPair() {
             return new Pair<>(position, value);
         }
     }
 
-    /**Returns an iterator over all PSPNodes in this PSPTree. PSPTrees have
-     * no natural order.
-     * @return Iterator of Pair(position, value) over all nodes in the tree
-     * */
-    @Override
-    public Iterator<Pair<Position, T>> iterator() {
-        List<Pair<Position, T>> l = new ArrayList<>();
-        for (PSPNode n : sentinel.outer) {
-            l.add(n.toPair());
-        }
-        return l.iterator();
-    }
+
 
     /** Used for creating dummy nodes with certain radii for range searches near POS. */
     private PSPNode dummyNode(Position pos, double r) {
-        PSPNode n = new PSPNode(pos, r, null, null, null);
+        PSPNode n = new PSPNode(pos, r, null, null, null, null);
         n.position = pos;
         n.radius = r;
         return n;
@@ -179,7 +172,7 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
      * @param goal Point to find nearest node to in the tree.
      * @return parent node
      */
-    private PSPNode findInsertionParent(PSPNode goal) {
+    /**private PSPNode findInsertionParent(PSPNode goal) {
         PSPNode p = sentinel; // node to update to compare the point P with
         while (p != null) {
             double d = p.distTo(goal);
@@ -200,6 +193,104 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
             }
         }
         return p;
+    }*/
+
+
+
+    /**
+     * Removes and returns the value at position POS. Returns null if POS
+     * not in the tree.
+     * @param pos Position to delete
+     * @return value of the deleted node
+     */
+    public T delete(Position pos) {
+        PSPNode dummy = dummyNode(pos);
+        PSPNode n = sentinel.outer;
+        while (n != null && !n.isAt(pos)) {
+            int cmp = nodeComparator.compare(n, dummy);
+            if (cmp > 0) { // pos is outside n, n = p.outer
+                n = n.outer;
+            } else {
+                n = n.inner;
+            }
+        }
+
+        if (n == null) {
+            return null;
+        }
+
+        int cmp = nodeComparator.compare(n.parent, n);
+        // determines whether n is inside/outside of its parent
+        // >0 n = p.outer
+        // <=0 n = p.inner
+
+        if (n.isLeaf()) { // n has no children
+            nodeSetWithCmp(cmp, n.parent, null);
+        } else if (n.inner == null || n.outer == null) { // n has one child
+            PSPNode child;
+            if (n.inner == null) {
+                child = n.outer;
+            } else {
+                child = n.inner;
+            }
+            nodeSetWithCmp(cmp, n.parent, child);
+        } else { // n has two children
+            nodeSetWithCmp(cmp, n.parent, null);
+            insert(n.inner);
+            insert(n.outer);
+        }
+
+        n.inner = null;
+        n.outer = null;
+        size--;
+        return n.value;
+    }
+
+    /** Sets the appropriate child of N to be OTHERNODE depending on the value of CMP. */
+    private void nodeSetWithCmp(int cmp, PSPNode n, PSPNode otherNode) {
+        if (cmp > 0) {
+            n.outer = otherNode;
+        } else {
+            n.inner = otherNode;
+        }
+    }
+
+    @Override
+    public int size() {
+        return size;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return size() == 0;
+    }
+
+    @Override
+    public boolean containsKey(Object pos) {
+        return get(pos) != null;
+    }
+
+    @Override
+    public boolean containsValue(Object value) {
+        for (T val : values()) {
+            if (val.getClass() != value.getClass()) {
+                return false;
+            }
+            if (val.equals(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    @Override
+    public T get(Object pos) {
+        PSPNode n = getNode((Position) pos);
+        if (n == null) {
+            return null;
+        }
+        return n.value;
     }
 
     /**
@@ -209,7 +300,7 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
      * @return The node at POS, or null if no node exists at POS
      */
     private PSPNode getNode(Position pos) {
-        if (size() == 0) {
+        if (isEmpty()) {
             return null;
         }
         PSPNode n = oneNearestNeighbor(dummyNode(pos));
@@ -225,103 +316,82 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
      * Finds the appropriate parent automatically so specifying the
      * parent is not necessary. */
     private void insert(PSPNode child) {
-        PSPNode parent = findInsertionParent(child);
-        child.radius = parent.distTo(child);
-        int cmp = nodeComparator.compare(parent, child);
-        nodeSetWithCmp(cmp, parent, child);
+        child.parent = oneNearestNeighbor(child);
+        child.radius = child.parent.distTo(child);
+        int cmp = nodeComparator.compare(child.parent, child);
+        nodeSetWithCmp(cmp, child.parent, child);
     }
 
-    /**
-     *  Inserts the given VALUE at position POS, if POS doesn't already exist.
-     *  If POS already exists in this tree, updates the value at POS to be VALUE.
-     *  @param pos Position representing position
-     *  @param value value to insert of type T
-     *  */
-    public void insert(Position pos, T value) {
+    @Override
+    public T put(Position pos, T value) {
         PSPNode n = getNode(pos);
         if (n != null) {
+            T old = n.value;
             n.value = value;
-            return;
+            return old;
         }
-        PSPNode newNode = new PSPNode(pos, 0, null, null, value);
+        PSPNode newNode = new PSPNode(pos, 0, null, null, null, value);
         insert(newNode);
         size++;
+        return null;
     }
 
-    /**
-     * Removes and returns the value at position POS. Returns null if POS
-     * not in the tree.
-     * @param pos Position to delete
-     * @return value of the deleted node
-     */
-    public T delete(Position pos) {
-        PSPNode dummy = dummyNode(pos);
-        PSPNode p = sentinel;
-        PSPNode n = sentinel.outer;
-        while (n != null && !n.isAt(pos)) {
-            p = n;
-            int cmp = nodeComparator.compare(n, dummy);
-            if (cmp > 0) { // pos is outside n, n = p.outer
-                n = n.outer;
-            } else {
-                n = n.inner;
-            }
-        }
-
-        if (n == null) {
-            return null;
-        }
-
-        int cmp = nodeComparator.compare(p, n);
-        // >0 n = p.outer
-        // <=0 n = p.inner
-
-        if (n.isLeaf()) { // n has no children
-            nodeSetWithCmp(cmp, p, null);
-        } else if (n.inner == null || n.outer == null) { // n has one child
-            PSPNode child;
-            if (n.inner == null) {
-                child = n.outer;
-            } else {
-                child = n.inner;
-            }
-            nodeSetWithCmp(cmp, p, child);
-        } else { // n has two children
-            nodeSetWithCmp(cmp, p, null);
-
-            n.inner.radius = p.distTo(n.inner);
-            insert(n.inner);
-            n.outer.radius = p.distTo(n.outer);
-            insert(n.outer);
-        }
-
-        size--;
-        n.inner = null;
-        n.outer = null;
-        return n.value;
+    @Override
+    public T remove(Object pos) {
+        return delete((Position) pos);
     }
 
-    /** Sets the child of N to be OTHERNODE depending on the appropriate value of CMP. */
-    private void nodeSetWithCmp(int cmp, PSPNode n, PSPNode otherNode) {
-        if (cmp > 0) {
-            n.outer = otherNode;
-        } else {
-            n.inner = otherNode;
+    @Override
+    public void putAll(Map<? extends Position, ? extends T> m) {
+        for (Entry<? extends Position, ? extends T> entry : m.entrySet()) {
+            this.put(entry.getKey(), entry.getValue());
         }
     }
 
-    /**
-     * Returns whether this tree contains the position POS.
-     * @param pos Position representing position
-     * @return boolean
-     */
-    public boolean contains(Position pos) {
-        return getNode(pos) != null;
+    @Override
+    public void clear() {
+        sentinel = createSentinel();
     }
 
-    /** Returns the size of this PSPTree. */
-    public int size() {
-        return size;
+    @Override
+    public Set<Position> keySet() {
+        Set<Position> s = new HashSet<>();
+        for (Entry<Position, T> e : entrySet()) {
+            s.add(e.getKey());
+        }
+        return s;
+    }
+
+
+    @Override
+    public Collection<T> values() {
+        Set<T> s = new HashSet<>();
+        for (Entry<Position, T> e : entrySet()) {
+            s.add(e.getValue());
+        }
+        return s;
+    }
+
+    @Override
+    public Set<Entry<Position, T>> entrySet() {
+        Iterator<Pair<Position, T>> it = iterator();
+        Set<Entry<Position, T>> result = new HashSet<>();
+        while (it.hasNext()) {
+            result.add(it.next());
+        }
+        return result;
+    }
+
+    /**Returns an iterator over all PSPNodes in this PSPTree. PSPTrees have
+     * no natural order.
+     * @return Iterator of Pair(position, value) over all nodes in the tree
+     * */
+    private Iterator<Pair<Position, T>> iterator() {
+        List<Pair<Position, T>> l = new ArrayList<>();
+        for (PSPNode n : sentinel.outer) {
+            l.add(n.toPair());
+        }
+        return l.iterator();
     }
 
     /**
@@ -348,14 +418,8 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
             }
             int cmp = nodeComparator.compare(start, goal);
             if (cmp > 0) { // outer excludes boundary
-                if (start.outer == null) {
-                    break;
-                }
                 start = start.outer;
             } else { // inner includes boundary
-                if (start.inner == null) {
-                    break;
-                }
                 start = start.inner;
             }
         }
@@ -386,7 +450,7 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
     }
     /** Returns the direct nearest neighbor in the tree to P.*/
     private PSPNode oneNearestNeighbor(PSPNode p) {
-        return oneNearestNeighbor(sentinel.outer, p);
+        return oneNearestNeighbor(sentinel, p);
     }
 
     /**
@@ -409,7 +473,7 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
             p.radius = Double.POSITIVE_INFINITY;
         }
         for (PSPNode deleted : nodeList) { //restores tree
-            insert(deleted.position, deleted.value);
+            put(deleted.position, deleted.value);
         }
         return nodeList;
     }
@@ -435,7 +499,8 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
 
     /**
      * Creates and returns the sentinel node, a node with a radius of 0
-     * created within a unit hypersphere of the origin (0, ..., 0).
+     * centered at a point within a unit hypercube with non-negative entries with one corner at
+     * the origin (0, ... , 0).
      * The first real node in the tree is given by sentinel.outer.
      * @return the sentinel node
      */
@@ -445,10 +510,10 @@ public class PSPTree<T> implements Iterable<Pair<Position, T>> {
         for (int i = 0; i < dimension; i++) {
             startPoint[i] = r.nextDouble();
         }
-        return new PSPNode(new Position(startPoint), 0, null, null, null);
+        return new PSPNode(new Position(startPoint), 0, null, null, null, null);
     }
 
-    public PSPTree(DistanceMetric d, int dimension) {
+    public PSPTreeMap(DistanceMetric d, int dimension) {
         this.distanceMetric = d;
         this.dimension = dimension;
         this.nodeComparator = new PSPNodeComparator();
