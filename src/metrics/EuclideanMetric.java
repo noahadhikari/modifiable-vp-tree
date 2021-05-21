@@ -1,5 +1,5 @@
 package metrics;
-import java.util.Arrays;
+import java.util.stream.DoubleStream;
 
 public class EuclideanMetric implements DistanceMetric {
     @Override
@@ -10,8 +10,7 @@ public class EuclideanMetric implements DistanceMetric {
         for(int i = 0; i < dim; i++) {
             squaredDifferences[i] = Math.pow(pos1[i] - pos2[i], 2);
         }
-
-        return Math.sqrt(Arrays.stream(squaredDifferences).sum());
+        return Math.sqrt(DoubleStream.of(squaredDifferences).sum());
     }
 
 }

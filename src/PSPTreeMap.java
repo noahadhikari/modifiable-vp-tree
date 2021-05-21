@@ -1,10 +1,9 @@
 import metrics.DistanceMetric;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Space-partitioning tree that uses hyperspheres to separate space into
- * inner and outer regions.
+ * inner and outer regions. Very close cousin of a vantage-point tree.
  */
 public class PSPTreeMap<T> implements Map<Position, T> {
 
@@ -14,6 +13,34 @@ public class PSPTreeMap<T> implements Map<Position, T> {
     private final int dimension;
     private final DistanceMetric distanceMetric;
     private final PSPNodeComparator nodeComparator;
+
+    /**
+     * Creates and returns the sentinel node, a node with a radius of 0
+     * centered at a point within a unit hypercube with non-negative entries with one corner at
+     * the origin (0, ... , 0).
+     * The first real node in the tree is given by sentinel.outer.
+     * @return the sentinel node
+     */
+    private PSPNode createSentinel() {
+        double[] startPoint = new double[dimension];
+        Random r = new Random();
+        for (int i = 0; i < dimension; i++) {
+            startPoint[i] = r.nextDouble();
+        }
+        return new PSPNode(new Position(startPoint), 0, null, null, null, null);
+    }
+
+    public PSPTreeMap(DistanceMetric d, int dimension) {
+        this.distanceMetric = d;
+        this.dimension = dimension;
+        this.nodeComparator = new PSPNodeComparator();
+        this.sentinel = createSentinel();
+    }
+
+    @Override
+    public String toString() {
+        return "{\n" + sentinel.outer.toString() + "}";
+    }
 
     private class PSPNode implements Iterable<PSPNode> {
 
@@ -195,7 +222,7 @@ public class PSPTreeMap<T> implements Map<Position, T> {
         // <=0 n = p.inner
 
         if (n.isLeaf()) { // n has no children
-            nodeSetWithCmp(cmp, n.parent, null);
+            childNullSet(cmp, n.parent);
         } else if (n.inner == null || n.outer == null) { // n has one child
             PSPNode child;
             if (n.inner == null) {
@@ -205,7 +232,7 @@ public class PSPTreeMap<T> implements Map<Position, T> {
             }
             nodeSetWithCmp(cmp, n.parent, child);
         } else { // n has two children
-            nodeSetWithCmp(cmp, n.parent, null);
+            childNullSet(cmp, n.parent);
             insert(n.inner);
             insert(n.outer);
         }
@@ -216,16 +243,26 @@ public class PSPTreeMap<T> implements Map<Position, T> {
         return n.value;
     }
 
-    /** Sets the appropriate child of PARENT to be CHILD depending on the value of CMP. */
-    private void nodeSetWithCmp(int cmp, PSPNode parent, PSPNode child) {
+    /**Sets the appropriate child of PARENT to be null depending on the value of CMP. */
+    private void childNullSet(int cmp, PSPNode parent) {
         if (cmp > 0) {
+            parent.outer = null;
+        } else {
+            parent.inner = null;
+        }
+    }
+    /**Sets the appropriate child of PARENT to be CHILD depending on the value of CMP.
+     * Also changes the parent of CHILD to be PARENT. Doesn't work with null child.*/
+    private void nodeSetWithCmp(int cmp, PSPNode parent, PSPNode child) {
+        assert child != null;
+        if (cmp > 0) {
+            child.outer = parent.outer;
             parent.outer = child;
         } else {
+            child.inner = parent.inner;
             parent.inner = child;
         }
-        if (child != null) {
-            child.parent = parent;
-        }
+        child.parent = parent;
     }
 
     @Override
@@ -276,7 +313,7 @@ public class PSPTreeMap<T> implements Map<Position, T> {
         if (isEmpty()) {
             return null;
         }
-        PSPNode n = oneNearestNeighbor(dummyNode(pos));
+        PSPNode n = oneNearestNeighbor(pos);
         if (n != null) {
             if (n.isAt(pos)) {
                 return n;
@@ -290,6 +327,9 @@ public class PSPTreeMap<T> implements Map<Position, T> {
      * parent is not necessary. */
     private void insert(PSPNode child) {
         child.parent = oneNearestNeighbor(child);
+        if (child.parent == null) {
+            child.parent = sentinel;
+        }
         child.radius = child.parent.distTo(child);
         int cmp = nodeComparator.compare(child.parent, child);
         nodeSetWithCmp(cmp, child.parent, child);
@@ -335,7 +375,6 @@ public class PSPTreeMap<T> implements Map<Position, T> {
         return s;
     }
 
-
     @Override
     public Collection<T> values() {
         Set<T> s = new HashSet<>();
@@ -367,6 +406,101 @@ public class PSPTreeMap<T> implements Map<Position, T> {
         return l.iterator();
     }
 
+    private PSPNode oneNearestNeighbor(Position pos) {
+        return oneNearestNeighbor(dummyNode(pos));
+    }
+    /** Returns the direct nearest neighbor in the tree to P.*/
+    private PSPNode oneNearestNeighbor(PSPNode p) {
+        List<Pair<Double, PSPNode>> l = kNearestNeighbor(p, 1);
+        if (l.size() == 0) {
+            return null;
+        }
+        return l.get(0).last;
+    }
+
+    /**Returns the K closest nodes to P in ascending order.
+     * If K is greater than the size of this tree, returns only size nodes.
+     * @param pos Position to search near
+     * @param k Number of neighbors to find
+     * @return List containing the K nearest neighbors to POS
+     */
+    public List<Pair<Double, Pair<Position, T>>> kNearestNeighbor(Position pos, int k) {
+        List<Pair<Double, PSPNode>> l = kNearestNeighbor(dummyNode(pos), k);
+        List<Pair<Double, Pair<Position, T>>> results = new ArrayList<>();
+        for (Pair<Double, PSPNode> pair : l) {
+            results.add(new Pair<>(pair.first, pair.last.toPair()));
+        }
+        return results;
+    }
+
+    /** Heavily inspired by Steve Hanov's VP-tree implementation.
+     * Returns the K closest nodes to P in ascending order.
+     * If K is greater than the size of this tree, returns only size nodes.
+     * @param p Position to search near
+     * @param k Number of neighbors to find
+     * @return List containing the K nearest neighbors to P
+     */
+    private List<Pair<Double, PSPNode>> kNearestNeighbor(PSPNode p, int k) {
+        k = Math.min(k, size());
+        if (k == 0) {
+            return new ArrayList<>();
+        }
+        PriorityQueue<Pair<Double, PSPNode>> pq = new PriorityQueue<>(Entry.comparingByKey());
+        search(sentinel.outer, p, k, pq, Double.POSITIVE_INFINITY);
+        List<Pair<Double, PSPNode>> results = new ArrayList<>();
+        while (!pq.isEmpty()) {
+            results.add(pq.poll());
+        }
+        return results;
+    }
+
+    /**Heavily inspired by Steve Hanov's VP-tree implementation.
+     * Modifies PQ with appropriate START, K, TAU values to contain the k closest nodes to
+     * GOAL. Assumes K <= size.
+     * @param start Node to begin searching from
+     * @param goal Target node
+     * @param k How many neighbors to search for
+     * @param pq Priority queue to modify
+     * @param tau Farthest distance recorded while searching thus far
+     */
+    private void search(PSPNode start, PSPNode goal, int k,
+                        PriorityQueue<Pair<Double, PSPNode>> pq, double tau) {
+        if (start == null) {
+            return;
+        }
+        double dist = Math.abs(start.distTo(goal) - start.radius);
+        if (dist < tau) {
+            if (pq.size() == k) {
+                pq.poll();
+            }
+            pq.add(new Pair<>(dist, start));
+            if (pq.size() == k) {
+                tau = pq.peek().first;
+            }
+        }
+        if (start.isLeaf()) {
+            return;
+        }
+
+        if (dist <= start.radius) {
+            if (dist - tau <= start.radius) {
+                search(start.inner, goal, k, pq, tau);
+            }
+            if (dist + tau >= start.radius) {
+                search(start.outer, goal, k, pq, tau);
+            }
+        } else {
+            if (dist + tau >= start.radius) {
+                search(start.outer, goal, k, pq, tau);
+            }
+            if (dist - tau <= start.radius) {
+                search(start.inner, goal, k, pq, tau);
+            }
+        }
+
+    }
+
+
     /**
      * Returns the nodes within a hypersphere of radius r centered at POS.
      * @param pos Position where hypersphere is centered
@@ -377,120 +511,4 @@ public class PSPTreeMap<T> implements Map<Position, T> {
         PSPNode p = dummyNode(pos, r);
         return null;
     }
-
-    /**Returns the candidate-nearest neighbor (close but not necessarily the closest) to GOAL
-     * starting from START.*/
-    private PSPNode candidateNearestNeighbor(PSPNode start, PSPNode goal) {
-        PSPNode candidate = start;
-        //finds the candidate-nearest neighbor
-        while (start != null) {
-            double d = start.distTo(goal);
-            if (d < goal.radius) {
-                candidate = start;
-                goal.radius = d;
-            }
-            int cmp = nodeComparator.compare(start, goal);
-            if (cmp > 0) { // outer excludes boundary
-                start = start.outer;
-            } else { // inner includes boundary
-                start = start.inner;
-            }
-        }
-        return candidate;
-    }
-
-    private PSPNode oneNearestNeighbor(PSPNode start, PSPNode goal) {
-        PSPNode candidate = candidateNearestNeighbor(start, goal);
-        PSPNode otherStart;
-        int cmp = nodeComparator.compare(candidate, goal);
-        if (cmp > 0) {
-            otherStart = candidate.inner;
-        } else {
-            otherStart = candidate.outer;
-        }
-        PSPNode best = candidate;
-        if (otherStart != null) {
-            PSPNode otherCandidate = oneNearestNeighbor(otherStart, goal);
-            Comparator<PSPNode> cmptr = goal.distComparator();
-            // < 0 if O1.distTo(P) < O2.distTo(P)
-            int distCmp = cmptr.compare(otherCandidate, candidate);
-            if (distCmp <= 0) {
-                best = otherCandidate;
-            }
-        }
-
-        return best;
-    }
-    /** Returns the direct nearest neighbor in the tree to P.*/
-    private PSPNode oneNearestNeighbor(PSPNode p) {
-        return oneNearestNeighbor(sentinel, p);
-    }
-
-    /**
-     * Returns the K closest nodes to POS in ascending order.
-     * If K is greater than the size of this tree,
-     * returns only size nodes.
-     * @param p PSPNode to search near
-     * @param k Number of neighbors to find
-     * @return List containing the K nearest neighbors to POS
-     */
-    private List<PSPNode> kNearestNeighbor(PSPNode p, int k) {
-        if (k > size) {
-            k = size;
-        }
-        List<PSPNode> nodeList = new ArrayList<>(k);
-        for (int i = 0; i < k; i++) {
-            PSPNode best = oneNearestNeighbor(p);
-            nodeList.add(best);
-            delete(best.position);
-            p.radius = Double.POSITIVE_INFINITY;
-        }
-        for (PSPNode deleted : nodeList) { //restores tree
-            put(deleted.position, deleted.value);
-        }
-        return nodeList;
-    }
-
-    /**
-     * Returns the K closest nodes to POS in ascending order.
-     * If K is greater than the size of this tree,
-     * returns only size nodes.
-     * @param pos Position to search near
-     * @param k Number of neighbors to find
-     * @return List containing the K nearest neighbors to POS
-     */
-    public List<Pair<Position, T>> kNearestNeighbor(Position pos, int k) {
-        PSPNode dummy = dummyNode(pos);
-        List<PSPNode> neighbors = kNearestNeighbor(dummy, k);
-        return neighbors.stream().map(PSPNode::toPair).collect(Collectors.toList());
-    }
-
-    @Override
-    public String toString() {
-        return "{\n" + sentinel.outer.toString() + "}";
-    }
-
-    /**
-     * Creates and returns the sentinel node, a node with a radius of 0
-     * centered at a point within a unit hypercube with non-negative entries with one corner at
-     * the origin (0, ... , 0).
-     * The first real node in the tree is given by sentinel.outer.
-     * @return the sentinel node
-     */
-    private PSPNode createSentinel() {
-        double[] startPoint = new double[dimension];
-        Random r = new Random();
-        for (int i = 0; i < dimension; i++) {
-            startPoint[i] = r.nextDouble();
-        }
-        return new PSPNode(new Position(startPoint), 0, null, null, null, null);
-    }
-
-    public PSPTreeMap(DistanceMetric d, int dimension) {
-        this.distanceMetric = d;
-        this.dimension = dimension;
-        this.nodeComparator = new PSPNodeComparator();
-        this.sentinel = createSentinel();
-    }
-
 }

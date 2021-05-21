@@ -15,7 +15,7 @@ class FunctionalityTest {
     Position e = new Position(0, -3);
     Position f = new Position(7, 10);
 
-    public Map<Position, String> createBasicTreeMap() {
+    public Map<Position, String> createBasicPSPTreeMap() {
         PSPTreeMap<String> p = new PSPTreeMap<>(new EuclideanMetric(), 2);
         p.put(a, "A");
         p.put(b, "B");
@@ -39,7 +39,7 @@ class FunctionalityTest {
 
     @Test
     void basicInsertTest() {
-        Map<Position, String> p = createBasicTreeMap();
+        Map<Position, String> p = createBasicPSPTreeMap();
         Map<Position, String> expected = createBasicHashMap();
         assertEquals(6, p.size());
         assertEquals(expected.entrySet(), p.entrySet());
@@ -47,7 +47,7 @@ class FunctionalityTest {
 
     @Test
     void basicDeleteTest() {
-        Map<Position, String> p = createBasicTreeMap();
+        Map<Position, String> p = createBasicPSPTreeMap();
         Map<Position, String> expected = createBasicHashMap();
         p.remove(b); expected.remove(b);
         p.remove(f); expected.remove(f);
@@ -57,7 +57,7 @@ class FunctionalityTest {
 
     @Test
     void basicContainsKeyTest() {
-        Map<Position, String> p = createBasicTreeMap();
+        Map<Position, String> p = createBasicPSPTreeMap();
         p.remove(b);
         assertTrue(p.containsKey(a));
         assertFalse(p.containsKey(b));
@@ -67,7 +67,7 @@ class FunctionalityTest {
     @Test
     void basicMultiDimensionalTest() {
         Map<Position, String> p = new PSPTreeMap<>(new EuclideanMetric(), 4);
-        Map<Position, String> expected = createBasicHashMap();
+        Map<Position, String> expected = new HashMap<>();
 
         Position a = new Position(0., 0., 5., 3.);
         Position b = new Position(4., 2., -8., 6.);
@@ -93,9 +93,8 @@ class FunctionalityTest {
         for (int i = 0; i <= m; i++) {
             t.put(new Position(i), i);
         }
-        for (Pair<Position, Integer> p : t.kNearestNeighbor(new Position(10), 400)) {
-            System.out.println(p);
-        }
+        System.out.println(t.kNearestNeighbor(new Position(0), 400));
+
 
     }
 }

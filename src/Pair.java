@@ -1,34 +1,34 @@
 import java.util.Map.Entry;
 
 public class Pair<K, V> implements Entry<K, V> {
-    public K key;
-    public V value;
+    public K first;
+    public V last;
 
-    public Pair(K key, V value) {
-        this.key = key;
-        this.value = value;
+    public Pair(K first, V last) {
+        this.first = first;
+        this.last = last;
     }
 
     @Override
     public String toString() {
-        return key + "=" + value;
+        return first + "=" + last;
     }
 
 
     @Override
     public K getKey() {
-        return key;
+        return first;
     }
 
     @Override
     public V getValue() {
-        return value;
+        return last;
     }
 
     @Override
     public V setValue(V value) {
-        V temp = this.value;
-        this.value = value;
+        V temp = this.last;
+        this.last = value;
         return temp;
     }
 }
