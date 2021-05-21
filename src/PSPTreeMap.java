@@ -168,42 +168,12 @@ public class PSPTreeMap<T> implements Map<Position, T> {
     }
 
     /**
-     * Returns the parent of any node inserted into the tree.
-     * @param goal Point to find nearest node to in the tree.
-     * @return parent node
-     */
-    /**private PSPNode findInsertionParent(PSPNode goal) {
-        PSPNode p = sentinel; // node to update to compare the point P with
-        while (p != null) {
-            double d = p.distTo(goal);
-            if (d < goal.radius) {
-                goal.radius = d;
-            }
-            int cmp = nodeComparator.compare(p, goal);
-            if (cmp > 0) { // outer excludes boundary
-                if (p.outer == null) {
-                    break;
-                }
-                p = p.outer;
-            } else { // inner includes boundary
-                if (p.inner == null) {
-                    break;
-                }
-                p = p.inner;
-            }
-        }
-        return p;
-    }*/
-
-
-
-    /**
      * Removes and returns the value at position POS. Returns null if POS
      * not in the tree.
      * @param pos Position to delete
      * @return value of the deleted node
      */
-    public T delete(Position pos) {
+    private T delete(Position pos) {
         PSPNode dummy = dummyNode(pos);
         PSPNode n = sentinel.outer;
         while (n != null && !n.isAt(pos)) {
@@ -246,12 +216,15 @@ public class PSPTreeMap<T> implements Map<Position, T> {
         return n.value;
     }
 
-    /** Sets the appropriate child of N to be OTHERNODE depending on the value of CMP. */
-    private void nodeSetWithCmp(int cmp, PSPNode n, PSPNode otherNode) {
+    /** Sets the appropriate child of PARENT to be CHILD depending on the value of CMP. */
+    private void nodeSetWithCmp(int cmp, PSPNode parent, PSPNode child) {
         if (cmp > 0) {
-            n.outer = otherNode;
+            parent.outer = child;
         } else {
-            n.inner = otherNode;
+            parent.inner = child;
+        }
+        if (child != null) {
+            child.parent = parent;
         }
     }
 

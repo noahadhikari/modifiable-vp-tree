@@ -1,6 +1,6 @@
 import com.google.common.base.Stopwatch;
-import metrics.SquaredEuclideanMetric;
 
+import metrics.EuclideanMetric;
 import org.junit.jupiter.api.Test;
 import org.knowm.xchart.QuickChart;
 import org.knowm.xchart.SwingWrapper;
@@ -28,7 +28,7 @@ public class TimingTest {
 
 
         for (int k = 10; k <= K; k *= 10) { //loop through dimensions 1, 10, ... , K
-            PSPTreeMap<Integer> p = new PSPTreeMap<>(new SquaredEuclideanMetric(), k);
+            PSPTreeMap<Integer> p = new PSPTreeMap<>(new EuclideanMetric(), k);
                 long time = 0;
                 for (int i = 0; i < N; i++) { //for each n, add one node n times
                     double[] pos = new double[k];
@@ -36,7 +36,7 @@ public class TimingTest {
                         pos[j] = rand.nextDouble();
                     }
                     Stopwatch timer = Stopwatch.createStarted();
-                    p.insert(new Position(pos), i);
+                    p.put(new Position(pos), i);
                     timer.stop();
                     time += timer.elapsed(TimeUnit.MILLISECONDS);
                 }
@@ -71,7 +71,7 @@ public class TimingTest {
 
 
         for (int n = 0; n < N; n += step) { //loop through nodes 10, ... , K
-            PSPTreeMap<Integer> p = new PSPTreeMap<>(new SquaredEuclideanMetric(), K);
+            PSPTreeMap<Integer> p = new PSPTreeMap<>(new EuclideanMetric(), K);
             long time = 0;
             for (int i = 0; i < N; i++) { //for each n, add one node n times
                 double[] pos = new double[K];
@@ -79,7 +79,7 @@ public class TimingTest {
                     pos[j] = rand.nextDouble();
                 }
                 Stopwatch timer = Stopwatch.createStarted();
-                p.insert(new Position(pos), i);
+                p.put(new Position(pos), i);
                 timer.stop();
                 time += timer.elapsed(TimeUnit.MILLISECONDS);
             }
